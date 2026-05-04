@@ -47,6 +47,9 @@ static int ComputePz_multiple(uint32_t nb_reps, const field_ext_elt x0[][FIELD_E
 	field_ext_elt t1[FIELD_EXT_PACKING(MQOM2_PARAM_MQ_N)];
 	field_ext_elt t1_x0[PIOP_NB_PARALLEL_REPETITIONS_SIGN];
 
+	const field_ext_elt* x0_ptr[PIOP_NB_PARALLEL_REPETITIONS_SIGN];
+	field_ext_elt* t0_ptr[PIOP_NB_PARALLEL_REPETITIONS_SIGN];
+
 	field_ext_elt z_0i, z_1i;
 
 	if(nb_reps > PIOP_NB_PARALLEL_REPETITIONS_SIGN) {
@@ -54,6 +57,10 @@ static int ComputePz_multiple(uint32_t nb_reps, const field_ext_elt x0[][FIELD_E
 		goto err;
 	}
 	
+	for (e = 0; e < nb_reps; e++) {
+		x0_ptr[e] = x0[e];
+	}
+
 	/* Compute the equations expansion in a streaming way to save memory */
 	ret = ExpandEquations_memopt_init(mseed_eq, &EEctx);
 	ERR(ret, err);
@@ -72,8 +79,9 @@ static int ComputePz_multiple(uint32_t nb_reps, const field_ext_elt x0[][FIELD_E
 			/* Compute t0, different for each tau repetition */
 			__BENCHMARK_START__(BS_PIOP_MAT_MUL_EXT);
 			for (e = 0; e < nb_reps; e++) {
-				t0[e][j] = field_ext_vect_mult(A_hat_row, x0[e], j + 1);
+				t0_ptr[e] = &t0[e][j];
 			}
+			field_ext_vect_mult_multiple_public(t0_ptr, A_hat_row, x0_ptr, j + 1, nb_reps);
 			__BENCHMARK_STOP__(BS_PIOP_MAT_MUL_EXT);
 		}
 		/* Finish t1 computation with b_hat_row */
@@ -233,9 +241,16 @@ static int ComputePzEval_multiple(uint32_t nb_reps, const field_ext_elt r[], con
 	field_ext_elt y_r2[FIELD_EXT_PACKING(MQOM2_PARAM_MQ_M / MQOM2_PARAM_MU)];
 	field_ext_elt v_zi;
 
+	const field_ext_elt* vx_ptr[PIOP_NB_PARALLEL_REPETITIONS_SIGN];
+	field_ext_elt* vt_ptr[PIOP_NB_PARALLEL_REPETITIONS_SIGN];
+
 	if(nb_reps > PIOP_NB_PARALLEL_REPETITIONS_VERIFY) {
 		ret = -1;
 		goto err;
+	}
+
+	for (e = 0; e < nb_reps; e++) {
+		vx_ptr[e] = v_x[e];
 	}
 
 	/* Compute the equations expansion in a streaming way to save memory */
@@ -248,8 +263,9 @@ static int ComputePzEval_multiple(uint32_t nb_reps, const field_ext_elt r[], con
 			ret = ExpandEquations_memopt_update(&EEctx, A_hat_row);
 			ERR(ret, err);
 			for (e = 0; e < nb_reps; e++) {
-				v_t[e][j] = field_ext_vect_mult(A_hat_row, v_x[e], j + 1);
+				vt_ptr[e] = &v_t[e][j];
 			}
+			field_ext_vect_mult_multiple_public(vt_ptr, A_hat_row, vx_ptr, j + 1, nb_reps);
 		}
 		/* Generate and add b_hat row */
 		ret = ExpandEquations_memopt_update(&EEctx, b_hat_row);

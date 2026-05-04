@@ -6,6 +6,7 @@
 #include "rijndael/rijndael.h"
 #include "fields.h"
 #include "fields_bitsliced.h"
+#include "blc.h"
 
 #ifndef STR
 #define STR_HELPER(x) #x
@@ -108,42 +109,14 @@ static inline void print_configuration(void) {
 #else
 	printf("  PIOP: default\r\n");
 #endif
-#ifdef MEMORY_EFFICIENT_BLC
-	printf("  BLC: memopt\r\n");
-#if defined(BLC_INTERNAL_X4)
-	printf("    BLC_INTERNAL: X4\r\n");
-#elif defined(BLC_INTERNAL_X2)
-	printf("    BLC_INTERNAL: X2\r\n");
+
+#if defined(USE_PIOP_CACHE) && !defined(MEMORY_EFFICIENT_PIOP)
+	printf("    PIOP cache ON\r\n");
 #else
-	printf("    BLC_INTERNAL: X1\r\n");
-#endif
-#ifdef BLC_NB_SEED_COMMITMENTS_PER_HASH_UPDATE
-	printf("    BLC_NB_SEED_COMMITMENTS_PER_HASH_UPDATE %d\r\n", BLC_NB_SEED_COMMITMENTS_PER_HASH_UPDATE);
-#else
-	printf("    BLC_NB_SEED_COMMITMENTS_PER_HASH_UPDATE 1 (default)\r\n");
-#endif
-#ifdef GGMTREE_NB_ENC_CTX_IN_MEMORY
-	printf("    GGMTREE_NB_ENC_CTX_IN_MEMORY %d\r\n", GGMTREE_NB_ENC_CTX_IN_MEMORY);
-#else
-	printf("    GGMTREE_NB_ENC_CTX_IN_MEMORY 1 (default)\r\n");
-#endif
-#ifdef SEED_COMMIT_MEMOPT
-	printf("    SEED_COMMIT_MEMOPT activated\r\n");
-#endif
-#else
-	printf("  BLC: default\r\n");
+	printf("    PIOP cache OFF\r\n");
 #endif
 
-#ifdef USE_PRG_CACHE
-	printf("  PRG cache ON\r\n");
-#else
-	printf("  PRG cache OFF\r\n");
-#endif
-#if defined(USE_PIOP_CACHE) && !defined(MEMORY_EFFICIENT_PIOP)
-	printf("  PIOP cache ON\r\n");
-#else
-	printf("  PIOP cache OFF\r\n");
-#endif
+	BLC_PrintConfig();
 
 	printf("  Rijndael implementation: %s\r\n", rijndael_conf);
 	printf("  Rijndael public implementation: %s\r\n", rijndael_conf_pub);

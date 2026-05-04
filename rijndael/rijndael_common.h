@@ -146,4 +146,27 @@ WEAK int aes_alg ## _ ## aes_impl ## _enc_x8_x8(const rijndael_ ## aes_impl ## _
 }
 
 
+/* Macros to ease dealing with automatic ECB contexts */
+#define MAKE_GENERIC_CTX_ECB(aes_alg, aes_impl) \
+typedef rijndael_ ## aes_impl ## _ctx_ ## aes_alg rijndael_ ## aes_impl ## _ctx_ ## aes_alg ## _ecb; \
+
+#define MAKE_GENERIC_FUNCS_ECB_DECL(aes_alg, aes_impl, szkey, sztext) \
+int aes_alg ## _ ## aes_impl ## _setkey_enc_ecb(rijndael_ ## aes_impl ## _ctx_ ## aes_alg ## _ecb *ctx, const uint8_t key[szkey]); \
+int aes_alg ## _ ## aes_impl ## _enc_ecb(const rijndael_ ## aes_impl ## _ctx_ ## aes_alg ## _ecb *ctx, uint32_t nblocks, const uint8_t* in, uint8_t* out);
+
+#define MAKE_GENERIC_FUNCS_ECB_IMPL(aes_alg, aes_impl, szkey, sztext) \
+WEAK int aes_alg ## _ ## aes_impl ## _setkey_enc_ecb(rijndael_ ## aes_impl ## _ctx_ ## aes_alg ## _ecb *ctx, const uint8_t key[szkey]){ \
+	return aes_alg ## _ ## aes_impl ## _setkey_enc(ctx, key); \
+} \
+/* */\
+WEAK int aes_alg ## _ ## aes_impl ## _enc_ecb(const rijndael_ ## aes_impl ## _ctx_ ## aes_alg ## _ecb *ctx, uint32_t nblocks, const uint8_t* in, uint8_t* out) { \
+	int ret = 0; \
+	unsigned int i; \
+	for(i = 0; i < nblocks; i++){ \
+		ret |= aes_alg ## _ ## aes_impl ## _enc(ctx, &in[i * sztext], &out[i * sztext]); \
+	} \
+	return ret; \
+}
+
+
 #endif /* __RIJNDAEL_COMMON_H__ */

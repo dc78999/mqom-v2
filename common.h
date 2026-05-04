@@ -224,8 +224,17 @@ static inline void mqom_cleanse(void *ptr, size_t len) {
 }
 #endif
 
+/* Deal with our internal "printf" */
+#ifndef _STDIO_H
+#include <stdio.h>
+#endif
+#define mqom_print printf
+
 #undef ERR
 #define ERR(r, e) if(r) { goto e; }
+
+#undef ERR_NULL
+#define ERR_NULL(r, e) if(r == NULL) { goto e; }
 
 /* Helpers to compute some sizes of serialized objects */
 #define MQOM2_PK_SIZE ((2 * MQOM2_PARAM_SEED_SIZE) + BYTE_SIZE_FIELD_EXT(MQOM2_PARAM_MQ_M/MQOM2_PARAM_MU))

@@ -1,5 +1,5 @@
 #include "blc_memopt.h"
-#include "ggm_tree.h"
+#include "ggm_tree_incr_x4.h"
 #include "benchmark.h"
 #include "seed_commit.h"
 #include "blc_memopt_common.h"
@@ -152,7 +152,7 @@ int BLC_Eval_x4_memopt(const uint32_t e[4], const uint8_t salt[MQOM2_PARAM_SALT_
 	field_ext_elt tmp_eta[FIELD_EXT_PACKING(MQOM2_PARAM_ETA)];
 	field_base_elt acc_x[FIELD_BASE_PACKING(MQOM2_PARAM_MQ_N)];
 	xof_context_x4 DECL_VAR(xof_ctx_x4);
-	ggmtree_ctx_partial_x4_t DECL_VAR(ggm_tree_x4);
+	ggmtree_ctx_partial_x4_t ggm_tree_x4 = { 0 };
 	const uint8_t *ls_com_x4_ptr[4] = {(uint8_t*) ls_com_x4[0], (uint8_t*) ls_com_x4[1], (uint8_t*) ls_com_x4[2], (uint8_t*) ls_com_x4[3]};
 
 	/* Initialize the PRG cache when used */

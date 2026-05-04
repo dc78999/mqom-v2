@@ -46,6 +46,14 @@ RIJNDAEL_OBJS   = $(patsubst %.c,%.o, $(filter %.c,$(RIJNDAEL_SRC_FILES)))
 RIJNDAEL_OBJS  += $(patsubst %.s,%.o, $(filter %.s,$(RIJNDAEL_SRC_FILES)))
 RIJNDAEL_OBJS  += $(patsubst %.S,%.o, $(filter %.S,$(RIJNDAEL_SRC_FILES)))
 
+# GGMTree related stuff
+GGM_DIR = ggm_tree
+GGM_INCLUDES = $(GGM_DIR)
+GGM_SRC_FILES = $(GGM_DIR)/ggm_tree.c $(GGM_DIR)/ggm_tree_incr_x1_base.c $(GGM_DIR)/ggm_tree_incr_x2.c $(GGM_DIR)/ggm_tree_incr_x4.c $(GGM_DIR)/ggm_tree_incr_x1_adv.c $(GGM_DIR)/ggm_tree_incr_batch.c
+GGM_OBJS   = $(patsubst %.c,%.o, $(filter %.c,$(GGM_SRC_FILES)))
+GGM_OBJS  += $(patsubst %.s,%.o, $(filter %.s,$(GGM_SRC_FILES)))
+GGM_OBJS  += $(patsubst %.S,%.o, $(filter %.S,$(GGM_SRC_FILES)))
+
 # BLC related stuff
 BLC_DIR = blc
 BLC_INCLUDES = $(BLC_DIR)
@@ -71,7 +79,7 @@ FIELDS_INCLUDES = $(FIELDS_DIR) $(FIELDS_BITSLICE_DIR)
 # MQOM2 related elements
 MQOM2_DIR = .
 MQOM2_INCLUDES = $(MQOM2_DIR)
-MQOM2_SRC_FILES = $(MQOM2_DIR)/xof.c $(MQOM2_DIR)/prg.c $(MQOM2_DIR)/ggm_tree.c $(MQOM2_DIR)/expand_mq.c $(MQOM2_DIR)/keygen.c $(MQOM2_DIR)/sign.c $(MQOM2_DIR)/sign_memopt.c $(MQOM2_DIR)/crypto_sign.c
+MQOM2_SRC_FILES = $(MQOM2_DIR)/xof.c $(MQOM2_DIR)/prg.c $(MQOM2_DIR)/expand_mq.c $(MQOM2_DIR)/keygen.c $(MQOM2_DIR)/sign.c $(MQOM2_DIR)/sign_memopt.c $(MQOM2_DIR)/crypto_sign.c
 MQOM2_OBJS   = $(patsubst %.c,%.o, $(filter %.c,$(MQOM2_SRC_FILES)))
 MQOM2_OBJS  += $(patsubst %.s,%.o, $(filter %.s,$(MQOM2_SRC_FILES)))
 MQOM2_OBJS  += $(patsubst %.S,%.o, $(filter %.S,$(MQOM2_SRC_FILES)))
@@ -81,7 +89,7 @@ EXTRA_OBJS  =$(patsubst %.c,%.o, $(filter %.c,$(EXTRA_SRC)))
 EXTRA_OBJS +=$(patsubst %.s,%.o, $(filter %.s,$(EXTRA_SRC)))
 EXTRA_OBJS +=$(patsubst %.S,%.o, $(filter %.S,$(EXTRA_SRC)))
 
-OBJS = $(RIJNDAEL_OBJS) $(BLC_OBJS) $(PIOP_OBJS) $(MQOM2_OBJS) $(EXTRA_OBJS)
+OBJS = $(RIJNDAEL_OBJS) $(GGM_OBJS) $(BLC_OBJS) $(PIOP_OBJS) $(MQOM2_OBJS) $(EXTRA_OBJS)
 
 ifneq ($(GCC),)
   # Remove gcc's -Warray-bounds and -W-stringop-overflow/-W-stringop-overread as they give many false positives
@@ -225,6 +233,26 @@ endif
 ifneq ($(GGMTREE_NB_ENC_CTX_IN_MEMORY),)
   CFLAGS += -DGGMTREE_NB_ENC_CTX_IN_MEMORY=$(GGMTREE_NB_ENC_CTX_IN_MEMORY)
 endif
+ifeq ($(GGM_TREE_NO_BATCHING),1)
+  CFLAGS += -DGGM_TREE_NO_BATCHING
+endif
+ifneq ($(BLC_NB_LEAF_SEEDS_IN_PARALLEL),)
+  CFLAGS += -DBLC_NB_LEAF_SEEDS_IN_PARALLEL=$(BLC_NB_LEAF_SEEDS_IN_PARALLEL)
+endif
+ifneq ($(GGMTREE_NB_PARALLEL_DERIVATIONS_LOG),)
+  CFLAGS += -DGGMTREE_NB_PARALLEL_DERIVATIONS_LOG=$(GGMTREE_NB_PARALLEL_DERIVATIONS_LOG)
+endif
+ifneq ($(GGMTREE_NB_SIMULTANEOUS_LEAVES_LOG),)
+  CFLAGS += -DGGMTREE_NB_SIMULTANEOUS_LEAVES_LOG=$(GGMTREE_NB_SIMULTANEOUS_LEAVES_LOG)
+endif
+ifeq ($(BLC_SEEDEXPAND_CACHE),1)
+  CFLAGS += -DBLC_SEEDEXPAND_CACHE
+endif
+ifeq ($(BLC_SEEDCOMMIT_CACHE),1)
+  CFLAGS += -DBLC_SEEDCOMMIT_CACHE
+endif
+
+
 # Activate optimizing memory for PIOP
 ifeq ($(MEMORY_EFFICIENT_PIOP),1)
   CFLAGS += -DMEMORY_EFFICIENT_PIOP
@@ -252,6 +280,9 @@ ifeq ($(FIELDS_BITSLICE_COMPOSITE),1)
 endif
 ifeq ($(FIELDS_BITSLICE_PUBLIC_JUMP),1)
   CFLAGS += -DFIELDS_BITSLICE_PUBLIC_JUMP
+endif
+ifneq ($(BITSLICE_HYBDID_LEFTOVER_LIMIT),)
+  CFLAGS += -DBITSLICE_HYBDID_LEFTOVER_LIMIT=$(BITSLICE_HYBDID_LEFTOVER_LIMIT)
 endif
 
 ifneq ($(USE_ENC_X8),0)
@@ -303,6 +334,11 @@ ifeq ($(FORCE_PLATFORM_AVX512_GFNI),1)
   CFLAGS := $(subst -march=native,,$(CFLAGS))
   CFLAGS := $(subst -mtune=native,,$(CFLAGS))
   CFLAGS += -maes -mgfni -mavx512bw -mavx512f -mavx512vl -mavx512vpopcntdq -mavx512vbmi
+endif
+
+# Externally provided XOF functions
+ifeq ($(MQOM2_XOF_EXTERNAL_API),1)
+  CFLAGS += -DMQOM2_XOF_EXTERNAL_API
 endif
 
 ## Togles for various analysis and other useful stuff
@@ -390,6 +426,7 @@ LIB_HASH_INCLUDES = $(LIB_HASH_DIR) $(LIB_HASH_DIR)/$(KECCAK_PLATFORM)
 # Include the necessary headers
 CFLAGS += $(foreach DIR, $(LIB_HASH_INCLUDES), -I$(DIR))
 CFLAGS += $(foreach DIR, $(RIJNDAEL_INCLUDES), -I$(DIR))
+CFLAGS += $(foreach DIR, $(GGM_INCLUDES), -I$(DIR))
 CFLAGS += $(foreach DIR, $(BLC_INCLUDES), -I$(DIR))
 CFLAGS += $(foreach DIR, $(PIOP_INCLUDES), -I$(DIR))
 CFLAGS += $(foreach DIR, $(FIELDS_INCLUDES), -I$(DIR))

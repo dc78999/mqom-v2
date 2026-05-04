@@ -3,7 +3,7 @@ import os, shutil, sys
 DESTINATION_PATH = os.path.dirname( __file__ ) + '/release_mupq'
 MQOM2_C_SOURCE_CODE_FOLDER = os.path.dirname( __file__ ) + '/../../mqom2_ref'
 
-MQOM2_C_SOURCE_CODE_SUBFOLDERS = ['blc', 'fields', 'fields_bitsliced', 'piop', 'rijndael']
+MQOM2_C_SOURCE_CODE_SUBFOLDERS = ['ggm_tree', 'blc', 'fields', 'fields_bitsliced', 'piop', 'rijndael']
 MQOM2_C_SOURCE_CODE_FILES = [
     'api.h',
     'common.h',
@@ -15,8 +15,21 @@ MQOM2_C_SOURCE_CODE_FILES = [
     'expand_mq.c',
     'expand_mq.h',
     'fields.h',
-    'ggm_tree.c',
-    'ggm_tree.h',
+    'ggm_tree/ggm_tree.c',
+    'ggm_tree/ggm_tree_common_ecb.h',
+    'ggm_tree/ggm_tree_common.h',
+    'ggm_tree/ggm_tree.h',
+    'ggm_tree/ggm_tree_incr_batch.c',
+    'ggm_tree/ggm_tree_incr_batch.h',
+    'ggm_tree/ggm_tree_incr.h',
+    'ggm_tree/ggm_tree_incr_x1_adv.c',
+    'ggm_tree/ggm_tree_incr_x1_adv.h',
+    'ggm_tree/ggm_tree_incr_x1_base.c',
+    'ggm_tree/ggm_tree_incr_x1_base.h',
+    'ggm_tree/ggm_tree_incr_x2.c',
+    'ggm_tree/ggm_tree_incr_x2.h',
+    'ggm_tree/ggm_tree_incr_x4.c',
+    'ggm_tree/ggm_tree_incr_x4.h',
     'keygen.c',
     'keygen.h',
     'mqom2_parameters.h',
@@ -29,19 +42,22 @@ MQOM2_C_SOURCE_CODE_FILES = [
     'crypto_sign.c',
     'xof.c',
     'xof.h',
-    'blc/seed_commit.h',
-    'blc/seed_commit_default.h',
-    'blc/seed_commit_memopt.h',
+    'blc/blc_common.h',
     'blc/blc_default.c',
     'blc/blc_default.h',
+    'blc/blc.h',
     'blc/blc_memopt.c',
-    'blc/blc_memopt.h',
     'blc/blc_memopt_common.h',
+    'blc/blc_memopt.h',
     'blc/blc_memopt_x1.c',
+    'blc/blc_memopt_x1_folding.h',
+    'blc/blc_memopt_x1.h',
+    'blc/blc_memopt_x1_seedcommit.h',
     'blc/blc_memopt_x2.c',
     'blc/blc_memopt_x4.c',
-    'blc/blc_common.h',
-    'blc/blc.h',
+    'blc/seed_commit_default.h',
+    'blc/seed_commit.h',
+    'blc/seed_commit_memopt.h',
     'fields/fields_handling.h',
     'fields/fields_avx2.h',
     'fields/fields_avx512.h',
@@ -156,12 +172,14 @@ for l in LEVELS:
                     parameters += "/* Rijndael conf: bitslice (actually underlying MUPQ implementation for cat1 with the MQOM2_FOR_MUPQ toggle) */\n#define RIJNDAEL_BITSLICE\n"
                     # Opt specific to the implementation
                     if impl == 'balanced':
-                        parameters += "/* Options activated for memory optimization */\n#define MEMORY_EFFICIENT_BLC\n#define PIOP_BITSLICE\n#define FIELDS_BITSLICE_COMPOSITE\n#define FIELDS_BITSLICE_PUBLIC_JUMP\n#define BLC_INTERNAL_X2\n#define GGMTREE_NB_ENC_CTX_IN_MEMORY 3\n#define MEMORY_EFFICIENT_KEYGEN\n"
-                        parameters += "#define USE_ENC_X8\n#define USE_XOF_X4\n\n"
+                        if trade_off == "fast":
+                            parameters += "/* Options activated for memory optimization */\n#define MEMORY_EFFICIENT_BLC\n#define PIOP_BITSLICE\n#define FIELDS_BITSLICE_COMPOSITE\n#define FIELDS_BITSLICE_PUBLIC_JUMP\n#define GGMTREE_NB_ENC_CTX_IN_MEMORY 0\n#define GGMTREE_NB_SIMULTANEOUS_LEAVES_LOG 5\n#define BLC_NB_LEAF_SEEDS_IN_PARALLEL 32\n#define BLC_SEEDCOMMIT_CACHE\n#define BLC_SEEDEXPAND_CACHE\n#define NO_EXPANDMQ_PRG_CACHE\n#define MEMORY_EFFICIENT_KEYGEN\n"
+                        else:
+                            parameters += "/* Options activated for memory optimization */\n#define MEMORY_EFFICIENT_BLC\n#define PIOP_BITSLICE\n#define FIELDS_BITSLICE_COMPOSITE\n#define FIELDS_BITSLICE_PUBLIC_JUMP\n#define GGMTREE_NB_ENC_CTX_IN_MEMORY 0\n#define GGMTREE_NB_SIMULTANEOUS_LEAVES_LOG 7\n#define BLC_NB_LEAF_SEEDS_IN_PARALLEL 64\n#define BLC_SEEDCOMMIT_CACHE\n#define BLC_SEEDEXPAND_CACHE\n#define NO_EXPANDMQ_PRG_CACHE\n#define MEMORY_EFFICIENT_KEYGEN\n"
                         parameters += "/* Specifically target MUPQ */\n#define MQOM2_FOR_MUPQ\n\n/* Do not mess with sections as the PQM4 framework uses them */\n"
                         parameters += "#define NO_EMBEDDED_SRAM_SECTION\n\n#endif /* __PARAMETERS_H__ */\n"
                     elif impl == 'memopt':
-                        parameters += "/* Options activated for memory optimization */\n#define MEMORY_EFFICIENT_BLC\n#define MEMORY_EFFICIENT_PIOP\n#define GGMTREE_NB_ENC_CTX_IN_MEMORY 0\n#define MEMORY_EFFICIENT_KEYGEN\n#define VERIFY_MEMOPT\n#define PRG_ONE_RIJNDAEL_CTX\n#define SEED_COMMIT_MEMOPT\n#define PIOP_NB_PARALLEL_REPETITIONS_SIGN 9\n#define PIOP_NB_PARALLEL_REPETITIONS_VERIFY 4\n"
+                        parameters += "/* Options activated for memory optimization */\n#define MEMORY_EFFICIENT_BLC\n#define MEMORY_EFFICIENT_PIOP\n#define GGMTREE_NB_ENC_CTX_IN_MEMORY 0\n#define MEMORY_EFFICIENT_KEYGEN\n#define VERIFY_MEMOPT\n#define PRG_ONE_RIJNDAEL_CTX\n#define PIOP_NB_PARALLEL_REPETITIONS_SIGN 9\n#define PIOP_NB_PARALLEL_REPETITIONS_VERIFY 4\n#define GGMTREE_NB_SIMULTANEOUS_LEAVES_LOG 4\n#define BLC_NB_LEAF_SEEDS_IN_PARALLEL 8\n#define NO_EXPANDMQ_PRG_CACHE\n"
                         parameters += "/* Specifically target MUPQ */\n#define MQOM2_FOR_MUPQ\n\n/* Do not mess with sections as the PQM4 framework uses them */\n"
                         parameters += "#define NO_EMBEDDED_SRAM_SECTION\n\n#endif /* __PARAMETERS_H__ */\n"
                     elif impl == 'ref':

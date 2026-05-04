@@ -469,3 +469,20 @@ err:
 	destroy_prg_cache_pub_x8(prg_cache_x8);
 	return ret;
 }
+
+void BLC_PrintConfig_default(void) {
+	mqom_print("  BLC: default\r\n");
+
+#ifdef USE_PRG_CACHE
+	mqom_print("    PRG cache ON\r\n");
+#else
+	mqom_print("    PRG cache OFF\r\n");
+#endif
+
+	// GGM Tree
+#ifdef GGMTREE_NB_ENC_CTX_IN_MEMORY
+	mqom_print("    GGMTREE_NB_ENC_CTX_IN_MEMORY %d\r\n", GGMTREE_NB_ENC_CTX_IN_MEMORY);
+#else
+	mqom_print("    GGMTREE_NB_ENC_CTX_IN_MEMORY 1 (default)\r\n");
+#endif
+}
