@@ -1,2 +1,27 @@
 build/
 *.o
+*.a
+
+# Python
+*.pyc
+__pycache__/
+venv/
+.env
+
+# Executables
+kat_gen
+kat_check
+bench
+bench_mem_keygen
+bench_mem_sign
+bench_mem_open
+sign
+mupq_kat_gen
+test_embedded_KAT
+test_field_bitslice
+
+# OS and Editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
